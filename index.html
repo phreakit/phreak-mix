@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PHREAK MIX — V5.40 iOS Audio Playback Fix</title>
+<title>PHREAK MIX — Beta Test</title>
 <style>
 :root{color-scheme:dark;--bg:#101114;--panel:#191b20;--panel2:#202329;--line:#30343d;--text:#f2f3f5;--muted:#a2a7b1;--red:#e24b43;--red2:#ff6a5e;--green:#8bd8ae}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#202127 0%,var(--bg) 58%);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -201,17 +201,24 @@ input[type=range]{min-height:28px;touch-action:pan-y}
   .panel{padding:10px}
 }
 
+
+/* V5.42 beta: compact BPM correction controls */
+.bpm-entry{display:flex;align-items:stretch;gap:6px;min-width:0}
+.bpm-entry input{width:100%;min-width:0;border:1px solid var(--line);border-radius:7px;background:#111216;color:var(--text);padding:8px}
+.tap-tempo{white-space:nowrap;min-width:82px;padding:7px 9px}
+@media(max-width:560px){.bpm-entry{gap:5px}.tap-tempo{min-width:76px;padding:7px 6px;font-size:11px}.bpm-entry input{font-size:14px}}
+
 </style>
 </head>
 <body>
 <main class="app">
-<header><div class="brand"><div class="mark">P</div><div><h1>PHREAK MIX</h1></div></div><span class="version">V5.40 · iOS AUDIO FIX</span></header>
-<section class="intro"><h2>Build your mix visually.</h2><p>See tempo, key, and beat detail. Get an alignment suggestion, then fine-tune it yourself.</p></section>
-<div class="mode-bar"><div><strong>WORKSPACE</strong><small id="modeDescription">Simple mode keeps the focus on arranging and previewing your mix.</small></div><div class="mode-switch" role="group" aria-label="Workspace mode"><button class="mode-choice active" id="simpleModeBtn" type="button" aria-pressed="true">Simple</button><button class="mode-choice" id="advancedModeBtn" type="button" aria-pressed="false">Advanced</button></div></div>
+<header><div class="brand"><div class="mark">P</div><div><h1>PHREAK MIX</h1><p>Mix songs. Shape transitions.</p></div></div></header>
+<section class="intro"><h2>Build your mix.</h2><p>Add songs, arrange clips, shape transitions, then export.</p></section>
+<div class="mode-bar"><div><strong>WORKSPACE</strong><small id="modeDescription">Arrange clips and preview your mix.</small></div><div class="mode-switch" role="group" aria-label="Workspace mode"><button class="mode-choice active" id="simpleModeBtn" type="button" aria-pressed="true">Simple</button><button class="mode-choice" id="advancedModeBtn" type="button" aria-pressed="false">Advanced</button></div></div>
 <div class="layout">
 <div class="left">
 <section class="panel" id="sectionEditor"><div class="row between timeline-section-heading" style="flex-wrap:wrap"><div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px"><h3>01 / Mix timeline</h3><span class="project-title-display" title="Current project"><span>PROJECT</span><strong id="projectTitleDisplay">Untitled Project</strong></span></div><div class="project-actions"><button class="btn primary" id="saveProjectBtn" type="button" title="Save the audio files and all project edits into one portable ZIP">↓ Save Project</button><button class="btn primary" id="exportMixBtn" type="button" title="Render the complete arrangement and download an MP3">♫ Export MP3</button><button class="btn" id="loadProjectBtn" type="button" title="Open a previously saved PHREAK MIX project ZIP">↑ Load</button><button class="btn danger" id="clearProjectBtn" type="button" title="Clear all songs and edits after confirmation">Clear</button><input id="projectFileInput" type="file" accept=".zip,.phreakmix,application/zip" hidden></div></div><div id="exportStatus" class="status" hidden role="status" aria-live="polite"><b id="exportStatusTitle">Preparing export…</b><div id="exportStatusDetail" style="margin-top:4px">Keep this tab open while your mix is rendered.</div></div>
-<p class="help" style="margin-top:0">Every song shares the same time ruler. New songs are appended with a transition overlap; drag clips to rearrange them. Use the waveform below for precise range cuts or splitting.</p>
+<p class="help" style="margin-top:0">Songs share one timeline. Drag clips to arrange or overlap them. Use the waveform for detailed cuts.</p>
 <div class="editor-toolbar"><select id="editSong" aria-label="Song to edit"><option value="">Add a song to begin</option></select><button class="btn" id="restoreSongBtn">Restore song</button><button class="btn danger" id="deleteSelectedClipsBtn" type="button" disabled title="Delete every selected clip section">Delete selected clips <span id="selectionCount">0</span></button></div>
 <div class="timeline-shell">
 <div class="timeline-topline">
@@ -245,14 +252,14 @@ input[type=range]{min-height:28px;touch-action:pan-y}
  <div class="control" style="margin-top:0"><div class="control-head"><label for="sectionSpeed">Playback speed</label><output id="sectionSpeedOut">100%</output></div><input id="sectionSpeed" type="range" min="50" max="150" step="1" value="100" disabled><div class="ends"><span>50% slower</span><span>150% faster</span></div></div>
  <div class="control"><div class="control-head"><label for="sectionPitch">Pitch shift</label><output id="sectionPitchOut">0 semitones</output></div><input id="sectionPitch" type="range" min="-12" max="12" step="1" value="0" disabled><div class="ends"><span>−12 semitones</span><span>+12 semitones</span></div></div>
  <div class="footer"><button class="btn" id="resetSectionAudioBtn" type="button" disabled>Reset section audio</button></div>
- <p class="help">Settings apply only to the selected clip section. Speed and pitch are processed independently. Copy/Paste (Ctrl/Cmd+C, Ctrl/Cmd+V) duplicates a clip with its own settings. Changes are included in Save Project.</p>
+ <p class="help">These settings affect the selected clip only. Copy/paste duplicates its settings. Save Project keeps your edits.</p>
 </div>
 
-<p class="help">Drag clips horizontally to place them anywhere on the timeline, including overlapping clips from different songs. With SNAP: ON, clip starts and ends align to nearby clip edges (within 16 px); a gold outline indicates a snap. Select a clip to edit it. Drag across the waveform to mark a source-time range, then choose Delete selected range. Gaps remain in place unless you manually move clips together.</p></section>
+<p class="help">Drag clips to move or overlap them. Snap aligns clip edges. Select a clip to edit it; in Advanced mode, drag across its waveform to select a range. Gaps stay until you move clips.</p></section>
 <section class="panel"><div class="row between"><h3>02 / Song queue</h3><span class="muted small" id="queueCount">0 songs</span></div>
 <div class="addbar"><button class="btn primary" id="addBtn">＋ Add songs</button><input id="files" type="file" accept=".mp3,.m4a,.aac,.wav,.aiff,.aif,.flac,.ogg,.opus,.mp4,audio/mpeg,audio/mp3,audio/mp4,audio/aac,audio/wav,audio/x-wav,audio/aiff,audio/flac,audio/ogg,audio/opus,application/ogg" multiple hidden></div>
 <div class="queue" id="queue"><div class="empty">Add audio files to start building your mix.<br><span class="small">MP3, WAV, M4A, OGG and other browser-supported formats.</span></div></div>
-<p class="help">Use ↑ and ↓ to reorder songs. Select a transition between two songs to edit it. Save your project to keep the audio and arrangement together.</p></section>
+<p class="help">Use ↑ / ↓ to reorder songs. Select a transition to edit it. Save Project keeps audio and edits together.</p></section>
 <section class="panel" id="transitionPanel"><div class="row between"><h3>03 / Selected transition</h3><span class="muted small" id="transitionLabel">Song 1 → Song 2</span></div>
 <div id="noTransition" class="empty">Add at least two songs to edit a transition.</div>
 <div id="transitionControls" hidden>
@@ -264,12 +271,12 @@ input[type=range]{min-height:28px;touch-action:pan-y}
  <div class="analysis-stat"><small>BPM MATCH SUGGESTION</small><strong id="tempoSuggestion">—</strong></div>
  <div class="analysis-stat"><small>ALIGNMENT TARGET</small><strong id="alignSuggestion">—</strong></div>
 </div>
-<p class="analysis-note" id="beatAssistNote">PHREAK MIX estimates BPM and musical key from the audio. BPM Match adjusts the selected clip only when a clip from the target song is selected; otherwise it adjusts all clips in that song. Key Match follows the same selection rule. Key shifting can introduce artifacts, especially with larger shifts; use it only if it sounds good to you.</p>
+<p class="analysis-note" id="beatAssistNote">Detected BPM and key are estimates. Match adjusts the selected clip, or all clips in that song if none is selected. Large key shifts may sound unnatural.</p>
 <div class="analysis-grid" style="margin:9px 0">
- <div class="control" style="margin:0"><div class="control-head"><label for="manualBpmA">Song A BPM (editable)</label><output id="manualBpmAStatus">Auto</output></div><input id="manualBpmA" type="number" min="40" max="240" step="0.1" placeholder="Detected BPM"></div>
- <div class="control" style="margin:0"><div class="control-head"><label for="manualBpmB">Song B BPM (editable)</label><output id="manualBpmBStatus">Auto</output></div><input id="manualBpmB" type="number" min="40" max="240" step="0.1" placeholder="Detected BPM"></div>
+ <div class="control bpm-control" style="margin:0"><div class="control-head"><label for="manualBpmA">Song A · BPM</label><output id="manualBpmAStatus">Auto</output></div><div class="bpm-entry"><input id="manualBpmA" type="number" min="40" max="240" step="0.1" placeholder="Detected BPM"><button class="btn tap-tempo" id="tapTempoA" type="button" title="Tap to the beat to set Song A tempo">Tap tempo</button></div></div>
+ <div class="control bpm-control" style="margin:0"><div class="control-head"><label for="manualBpmB">Song B · BPM</label><output id="manualBpmBStatus">Auto</output></div><div class="bpm-entry"><input id="manualBpmB" type="number" min="40" max="240" step="0.1" placeholder="Detected BPM"><button class="btn tap-tempo" id="tapTempoB" type="button" title="Tap to the beat to set Song B tempo">Tap tempo</button></div></div>
 </div>
-<p class="analysis-note" style="margin-top:4px">If automatic BPM detection is wrong, enter the correct tempo for either song here. BPM Match uses these values when provided.</p>
+<p class="analysis-note" style="margin-top:4px">Wrong BPM? Tap along with the beat or enter a value. Match uses your corrected BPM.</p>
 <div class="analysis-actions"><button class="btn primary" id="applyBpmMatchBtn" type="button" title="Adjust Song B to match Song A">✦ Match B to A · BPM</button><button class="btn" id="applyBpmReverseBtn" type="button" title="Adjust Song A to match Song B">✦ Match A to B · BPM</button><button class="btn" id="applyKeyMatchBtn" type="button" title="Transpose Song B to match Song A">♫ Match B to A · Key</button><button class="btn" id="applyKeyReverseBtn" type="button" title="Transpose Song A to match Song B">♫ Match A to B · Key</button><button class="btn" id="reanalyzeBtn" type="button">Re-analyze songs</button></div>
 </div>
 <div class="presets"><button class="preset" data-preset="Quick Switch"><strong>Quick Switch</strong><small>Fast handoff</small></button><button class="preset active" data-preset="Smooth Blend"><strong>Smooth Blend</strong><small>Gradual crossover</small></button><button class="preset" data-preset="Long Fade"><strong>Long Fade</strong><small>Slow and cinematic</small></button></div>
@@ -283,9 +290,9 @@ input[type=range]{min-height:28px;touch-action:pan-y}
 <button class="effect" data-effect="Reverb"><span class="dot"></span><span><strong>Reverb</strong><small>Space / atmosphere</small></span></button>
 </div></div>
 <div class="control"><div class="control-head"><label for="effectIntensity">Effect intensity</label><output id="effectIntensityOut">60%</output></div><input id="effectIntensity" type="range" min="0" max="100" value="60"></div>
-<div class="control" id="echoDelayControl" hidden><div class="control-head"><label for="echoDelay">Echo delay time</label><output id="echoDelayOut">250 ms</output></div><input id="echoDelay" type="range" min="50" max="1000" step="10" value="250"><p class="help">Set the gap between repeats to match the song’s rhythm. Try 125 ms, 250 ms, 500 ms, or a beat-synced value.</p></div>
+<div class="control" id="echoDelayControl" hidden><div class="control-head"><label for="echoDelay">Echo delay time</label><output id="echoDelayOut">250 ms</output></div><input id="echoDelay" type="range" min="50" max="1000" step="10" value="250"><p class="help">Adjust the time between echoes to fit the rhythm.</p></div>
 <div class="footer"><button class="btn" id="previewTransitionBtn">▶ Preview transition</button><button class="btn" id="applyDefaultsBtn">Reset this transition</button></div>
-<p class="help">Each song pair has its own transition settings. Save Project packages your audio and edits into one portable file you can reopen with Load Project.</p>
+<p class="help">Each song pair has its own transition. Save Project creates a ZIP you can reopen with Load.</p>
 </div></section>
 </div>
 
@@ -378,7 +385,7 @@ function deleteSelectedClips(){
  selectedClipIds.clear();selectedClipId=null;rangeSelection=null;renderEditor();renderTimelineGroups();refreshSelectionUI();toast(`Deleted ${removed} selected clip section${removed===1?'':'s'}. Gaps are preserved.`);
 }
 $('deleteSelectedClipsBtn').addEventListener('click',deleteSelectedClips);
-function setWorkspaceMode(mode){const advanced=mode==='advanced';document.body.classList.toggle('simple-mode',!advanced);$('simpleModeBtn').classList.toggle('active',!advanced);$('advancedModeBtn').classList.toggle('active',advanced);$('simpleModeBtn').setAttribute('aria-pressed',String(!advanced));$('advancedModeBtn').setAttribute('aria-pressed',String(advanced));$('modeDescription').textContent=advanced?'Advanced mode exposes detailed waveform cuts, section speed/pitch, and precision editing.':'Simple mode keeps the focus on arranging and previewing your mix.';try{localStorage.setItem('phreakMixWorkspaceMode',mode)}catch(e){} }
+function setWorkspaceMode(mode){const advanced=mode==='advanced';document.body.classList.toggle('simple-mode',!advanced);$('simpleModeBtn').classList.toggle('active',!advanced);$('advancedModeBtn').classList.toggle('active',advanced);$('simpleModeBtn').setAttribute('aria-pressed',String(!advanced));$('advancedModeBtn').setAttribute('aria-pressed',String(advanced));$('modeDescription').textContent=advanced?'Advanced mode exposes detailed waveform cuts, section speed/pitch, and precision editing.':'Arrange clips and preview your mix.';try{localStorage.setItem('phreakMixWorkspaceMode',mode)}catch(e){} }
 $('simpleModeBtn').addEventListener('click',()=>setWorkspaceMode('simple'));$('advancedModeBtn').addEventListener('click',()=>setWorkspaceMode('advanced'));
 try{setWorkspaceMode(localStorage.getItem('phreakMixWorkspaceMode')==='advanced'?'advanced':'simple')}catch(e){setWorkspaceMode('simple')}
 
@@ -929,6 +936,26 @@ function trackTempoLabel(t){return t?.bpm?`${Math.round(t.bpm)} BPM`:'BPM analyz
 function effectiveBpm(track,slot){const manual=Number($(slot==='A'?'manualBpmA':'manualBpmB')?.value);return Number.isFinite(manual)&&manual>=40&&manual<=240?manual:(Number(track?.bpm)||null)}
 function syncManualBpmInputs(force=false){const a=tracks[selectedTransition],b=tracks[selectedTransition+1];for(const [slot,t] of [['A',a],['B',b]]){const input=$('manualBpm'+slot),status=$('manualBpm'+slot+'Status');if(!input||!status)continue;if(force)input.value=t?.manualBpm?String(t.manualBpm):'';input.placeholder=t?.bpm?String(Math.round(t.bpm*10)/10):'Detected BPM';status.textContent=t?.manualBpm?'Manual':'Auto';}}
 for(const slot of ['A','B']){$('manualBpm'+slot).addEventListener('pointerdown',pushHistory);$('manualBpm'+slot).addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Backspace','Delete'].includes(e.key))pushHistory()});$('manualBpm'+slot).addEventListener('input',()=>{const t=tracks[selectedTransition+(slot==='A'?0:1)];if(t){const v=Number($('manualBpm'+slot).value);t.manualBpm=$('manualBpm'+slot).value&&v>=40&&v<=240?v:null;}$('manualBpm'+slot+'Status').textContent=$('manualBpm'+slot).value?'Manual':'Auto';refreshBeatAssist();});}
+// Tap four or more beats to estimate tempo; tapping restarts after a short pause.
+const tapTimes={A:[],B:[]};
+for(const slot of ['A','B']){
+ $('tapTempo'+slot).addEventListener('click',()=>{
+  const now=performance.now(),times=tapTimes[slot];
+  if(times.length&&now-times[times.length-1]>2200)times.length=0;
+  times.push(now);if(times.length>8)times.shift();
+  if(times.length>=4){
+   const intervals=[];for(let i=1;i<times.length;i++)intervals.push(times[i]-times[i-1]);
+   intervals.sort((a,b)=>a-b);const mid=Math.floor(intervals.length/2);const ms=intervals.length%2?intervals[mid]:(intervals[mid-1]+intervals[mid])/2;
+   let bpm=60000/ms;while(bpm<40)bpm*=2;while(bpm>240)bpm/=2;
+   bpm=Math.round(bpm*10)/10;const input=$('manualBpm'+slot),t=tracks[selectedTransition+(slot==='A'?0:1)];
+   if(t){pushHistory();t.manualBpm=bpm;input.value=String(bpm);$('manualBpm'+slot+'Status').textContent='Manual';refreshBeatAssist();}
+   $('tapTempo'+slot).textContent=bpm+' BPM';
+  }else{$('tapTempo'+slot).textContent='Tap '+(4-times.length+1)+' more';}
+  if(times.length===8){tapTimes[slot]=[times[times.length-1]];}
+ });
+ $('tapTempo'+slot).addEventListener('dblclick',()=>{tapTimes[slot]=[];$('tapTempo'+slot).textContent='Tap tempo';});
+}
+
 function keyRootFromLabel(label){const m=String(label||'').match(/^\s*([A-G])([♯#b♭]?)(?:\s+(major|minor))?/i);if(!m)return null;const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1].toUpperCase()];let root=base;if(m[2]==='♯'||m[2]==='#')root++;if(m[2]==='♭'||m[2]==='b')root--;return ((root%12)+12)%12;}
 function nearestKeyShift(fromLabel,toLabel){const from=keyRootFromLabel(fromLabel),to=keyRootFromLabel(toLabel);if(from==null||to==null)return 0;let d=to-from;while(d>6)d-=12;while(d< -6)d+=12;return d;}
 function tempoMatchFor(aBpm,bBpm){
@@ -1000,7 +1027,7 @@ function applyKeyDirection(adjustIndex,referenceIndex){
 $('applyKeyMatchBtn').addEventListener('click',()=>applyKeyDirection(1,0));
 $('applyKeyReverseBtn').addEventListener('click',()=>applyKeyDirection(0,1));
 $('reanalyzeBtn').addEventListener('click',async()=>{const pair=[tracks[selectedTransition],tracks[selectedTransition+1]].filter(Boolean);if(!pair.length)return;ensureAudio();await loadBuffers();await Promise.all(pair.map(async t=>{t.bpm=null;t.keyName=null;t.beatOffset=null;t.analysisState='analyzing';await analyzeTrack(t)}));renderQueue();renderTransition();syncManualBpmInputs();toast('Audio analysis updated. Review BPM estimates and enter corrections if needed.');});
-function renderTransition(){const ok=tracks.length>1&&selectedTransition<tracks.length-1;$('noTransition').hidden=ok;$('transitionControls').hidden=!ok;if(!ok)return;const t=transitions[selectedTransition]||(transitions[selectedTransition]=newTransition());if(t.delayMs==null)t.delayMs=250;$('transitionLabel').textContent=(selectedTransition+1)+' → '+(selectedTransition+2);document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset===t.preset));document.querySelectorAll('[data-effect]').forEach(b=>b.classList.toggle('active',b.dataset.effect===t.effect));$('transitionAt').value=t.at;$('transitionAtOut').textContent=t.at+' sec';$('crossfade').value=t.blend;$('crossfadeOut').textContent=t.blend+'% Song B';$('fadeLength').value=t.length;$('fadeLengthOut').textContent=t.length+' seconds';$('effectIntensity').value=t.intensity;$('effectIntensityOut').textContent=t.intensity+'%';$('echoDelay').value=t.delayMs;$('echoDelayOut').textContent=t.delayMs+' ms';$('echoDelayControl').hidden=t.effect!=='Echo';syncManualBpmInputs(true);refreshBeatAssist()}
+function renderTransition(){const ok=tracks.length>1&&selectedTransition<tracks.length-1;$('noTransition').hidden=ok;$('transitionControls').hidden=!ok;if(!ok)return;const t=transitions[selectedTransition]||(transitions[selectedTransition]=newTransition());if(t.delayMs==null)t.delayMs=250;$('transitionLabel').textContent=(selectedTransition+1)+' → '+(selectedTransition+2);document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset===t.preset));document.querySelectorAll('[data-effect]').forEach(b=>b.classList.toggle('active',b.dataset.effect===t.effect));$('transitionAt').value=t.at;$('transitionAtOut').textContent=t.at+' sec';$('crossfade').value=t.blend;$('crossfadeOut').textContent=t.blend+'% Song B';$('fadeLength').value=t.length;$('fadeLengthOut').textContent=t.length+' seconds';$('effectIntensity').value=t.intensity;$('effectIntensityOut').textContent=t.intensity+'%';$('echoDelay').value=t.delayMs;$('echoDelayOut').textContent=t.delayMs+' ms';$('echoDelayControl').hidden=t.effect!=='Echo';syncManualBpmInputs(true);for(const slot of ['A','B']){$('tapTempo'+slot).textContent='Tap tempo';tapTimes[slot]=[]}refreshBeatAssist()}
 function currentTransition(){return transitions[selectedTransition]}
 function bindRange(id,key,out,format){$(id).addEventListener('pointerdown',pushHistory);$(id).addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key))pushHistory()});$(id).addEventListener('input',()=>{const t=currentTransition();if(!t)return;t[key]=+$(id).value;$(out).textContent=format(t[key]);if(key==='length'||key==='at')t.preset='Custom';document.querySelectorAll('[data-preset]').forEach(b=>b.classList.toggle('active',b.dataset.preset===t.preset));renderQueue()})}
 bindRange('transitionAt','at','transitionAtOut',v=>v+' sec');bindRange('crossfade','blend','crossfadeOut',v=>v+'% Song B');bindRange('fadeLength','length','fadeLengthOut',v=>v+' seconds');bindRange('effectIntensity','intensity','effectIntensityOut',v=>v+'%');$('echoDelay').addEventListener('pointerdown',pushHistory);$('echoDelay').addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key))pushHistory()});$('echoDelay').addEventListener('input',()=>{const t=currentTransition();if(!t)return;t.delayMs=+$('echoDelay').value;$('echoDelayOut').textContent=t.delayMs+' ms'});
