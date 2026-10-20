@@ -1140,7 +1140,46 @@ $('zoomOutBtn').onclick=()=>zoomTimeline(1/1.5);
 $('zoomFitBtn').onclick=()=>zoomTimeline(1,true);
 $('stopBtn').onclick=stopPlayback;
 $('restartBtn').onclick=playMix;
-$('previewTransitionBtn').onclick=async()=>{if(tracks.length<2){toast('Add at least two songs first.');return}const i=selectedTransition;const audio=ensureAudio();try{if(audio.state!=='running')await audio.resume()}catch(e){console.warn('Audio context resume failed:',e);toast('Tap Preview again to enable audio on this device.');return}await loadBuffers();if(!tracks[i]?.buffer||!tracks[i+1]?.buffer){toast('Wait for both songs to finish loading.');return}stopSources();if(ctx.state==='suspended')await ctx.resume();const tr=transitions[i]||newTransition();const a=tracks[i],b=tracks[i+1];const len=Math.min(tr.length,tr.at,a.duration,b.duration);if(len<=0){toast('This transition needs longer tracks.');return}const start=ctx.currentTime+.08;const offset=Math.max(0,a.duration-len);const fxWindow=tr.effect==='None'?null:{start,end:start+len};const aSection=ensureSections(a).filter(c=>c.end>offset).sort((x,y)=>y.start-x.start)[0]||null;const bSection=ensureSections(b).find(c=>c.start<=len&&c.end>0)||null;const first=startTrackAt(i,start,offset,tr,len,(g,when)=>{g.setValueAtTime(1,when);for(let step=1;step<=24;step++){const x=step/24;const bias=Math.exp(((tr.blend/100)-.5)*1.2);g.linearRampToValueAtTime(Math.cos(Math.pow(x,bias)*Math.PI/2),when+len*x)}},fxWindow,aSection);const second=startTrackAt(i+1,start,0,{...tr,effect:'None'},len,(g,when)=>{g.setValueAtTime(0,when);const bias=Math.exp((.5-(tr.blend/100))*1.2);for(let step=1;step<=24;step++){const x=step/24;g.linearRampToValueAtTime(Math.sin(Math.pow(x,bias)*Math.PI/2),when+len*x)}},null,bSection);playMode='preview';playing=true;playheadOrigin=0;startedAt=start;previewEnd=start+len;$('nowPlaying').textContent=a.name+' → '+b.name;$('playSub').textContent='Overlapping transition preview · '+tr.preset;$('playBtn').textContent='Ⅱ';$('progressSeek').max=Math.max(1,Math.round(len*10));tick()};
+$('previewTransitionBtn').onclick=async()=>{
+ if(tracks.length<2){toast('Add at least two songs first.');return}
+ const i=selectedTransition,a=tracks[i],b=tracks[i+1];if(!a||!b)return;
+ const audio=ensureAudio();try{if(audio.state!=='running')await audio.resume()}catch(e){console.warn('Audio context resume failed:',e);toast('Tap Preview again to enable audio on this device.');return}
+ await loadBuffers();if(!a.buffer||!b.buffer){toast('Wait for both songs to finish loading.');return}
+ stopSources();if(ctx.state==='suspended')await ctx.resume();buildTimeline();
+ const tr=transitions[i]||newTransition();
+ const aClips=timeline.filter(seg=>seg.index===i),bClips=timeline.filter(seg=>seg.index===i+1);
+ if(!aClips.length||!bClips.length){toast('Both songs need playable clips on the timeline.');return}
+ const aEnd=Math.max(...aClips.map(seg=>seg.end)),bStart=Math.min(...bClips.map(seg=>seg.start));
+ // Preview the actual timeline overlap so clip placement, source offsets, splits, and per-clip speed/pitch stay in sync.
+ let mixStart=bStart,mixEnd=aEnd;
+ if(!(mixEnd>mixStart+.01)){
+  // If the pair does not overlap, preview the transition-length window ending at Song A's last clip.
+  mixEnd=aEnd;mixStart=Math.max(0,mixEnd-Math.max(.1,Number(tr.length)||1));
+ }
+ const len=mixEnd-mixStart;if(len<=.01){toast('This transition has no playable timeline range.');return}
+ const start=ctx.currentTime+.08;let firstName='';
+ for(const seg of timeline){
+  if(seg.index!==i&&seg.index!==i+1)continue;
+  const segStart=Math.max(mixStart,seg.start),segEnd=Math.min(mixEnd,seg.end);if(segEnd<=segStart+.001)continue;
+  const t=tracks[seg.index],clip=t.sections.find(c=>c.id===seg.clipId)||null;
+  const speed=Math.max(.5,Number(seg.speed)||1),local=segStart-seg.start;
+  const sourceOffset=seg.sourceStart+local*speed;
+  const sourceDuration=Math.max(.01,(segEnd-segStart)*speed);
+  const when=start+(segStart-mixStart),effectWindow=null;
+  const nextStart=timeline.filter(x=>x.index===seg.index+1).reduce((m,x)=>Math.min(m,x.groupStart),Infinity);
+  const overlap=Number.isFinite(nextStart)?Math.max(0,seg.groupEnd-nextStart):0;
+  const fxLen=Math.min(Math.max(0,Number(tr.length)||0),overlap);
+  let fx=null;
+  if(tr.effect!=='None'&&fxLen>0){const fxStartMix=seg.groupEnd-fxLen,fxEndMix=seg.groupEnd;if(fxEndMix>segStart&&fxStartMix<segEnd)fx={start:start+Math.max(0,fxStartMix-mixStart),end:start+Math.min(len,fxEndMix-mixStart)}}
+  const node=startTrackAt(seg.index,when,sourceOffset,tr,sourceDuration,(param,scheduledAt)=>{
+   param.setValueAtTime(fadeValues(seg.index,segStart),scheduledAt);
+   const steps=48;for(let step=1;step<=steps;step++){const time=segStart+(segEnd-segStart)*step/steps;if(time<=segStart+.0001)continue;param.linearRampToValueAtTime(fadeValues(seg.index,time),start+(time-mixStart));}
+  },fx,clip);
+  if(node&&firstName==='')firstName=t.name;
+ }
+ playMode='preview';playing=true;paused=false;playheadOrigin=0;startedAt=start;previewEnd=start+len;
+ $('nowPlaying').textContent=a.name+' → '+b.name;$('playSub').textContent='Timeline-aligned transition preview · '+tr.preset;$('playBtn').textContent='Ⅱ';$('progressSeek').max=Math.max(1,Math.round(len*10));tick();
+};
 
 // Portable project format: a ZIP archive containing project.json and the original audio files.
 // We write ZIP entries with the STORE method, so this remains fully offline and needs no library/CDN.
